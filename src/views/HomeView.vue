@@ -45,19 +45,7 @@ async function fetchCharacters(page, name = '') {
   }
 }
 
-function handleSearch(query) {
-  searchQuery.value = query
-  currentPage.value = 1
 
-  router.push({
-    query: {
-      page: 1,
-      ...(query ? { name: query } : {}),
-    },
-  })
-
-  fetchCharacters(1, query)
-}
 
 function handlePageChange(page) {
   currentPage.value = page
@@ -65,6 +53,19 @@ function handlePageChange(page) {
 
 onMounted(() => {
   fetchCharacters(currentPage.value, searchQuery.value)
+})
+
+watch(searchQuery, (newQuery) => {
+  currentPage.value = 1
+
+  router.push({
+    query: {
+      page: 1,
+      ...(newQuery ? { name: newQuery } : {}),
+    },
+  })
+
+  fetchCharacters(1, newQuery)
 })
 
 watch(currentPage, (newPage) => {
@@ -93,16 +94,25 @@ watch(
     }
   }
 )
+
+
+// Questions:
+// 1. How many API requests were made while typing "morty"?
+//    5 requests, one for each typed character.
+//
+// 2. What happens if a slow request from keystroke 2 arrives after keystroke 5?
+//    An older response can arrive later and overwrite newer results.
+//
+// 3. How does this affect the server and the user experience?
+//    It sends too many unnecessary requests, increases server load,
+//    and can make the UI show outdated or flickering results.
+
 </script>
 
 <template>
   <div class="container">
     <h1>Rick & Morty Characters</h1>
-    <SearchBar
-  v-model="searchQuery"
-  :showButton="true"
-  @search="handleSearch"
-/>
+   <SearchBar v-model="searchQuery" />
 
     <transition name="fade" mode="out-in">
       <div :key="currentPage" class="characters-wrapper">
