@@ -10,11 +10,32 @@ const router = useRouter()
 const characters = ref([])
 const currentPage = ref(Number(route.query.page) || 1)
 const totalPages = ref(1)
+const totalCount = ref(0)
 const loading = ref(false)
 const searchQuery = ref('')
 const noCharactersFound = ref(false)
 
+let controller = null
+
+function debounce(fn, delay) {
+  let timeoutId
+
+  return function (...args) {
+    clearTimeout(timeoutId)
+
+    timeoutId = setTimeout(() => {
+      fn(...args)
+    }, delay)
+  }
+}
+
 async function fetchCharacters(page, name = '') {
+  if (controller) {
+    controller.abort()
+  }
+
+  controller = new AbortController()
+
   try {
     loading.value = true
     noCharactersFound.value = false
@@ -25,11 +46,14 @@ async function fetchCharacters(page, name = '') {
       url += `&name=${encodeURIComponent(name.trim())}`
     }
 
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      signal: controller.signal,
+    })
 
     if (response.status === 404) {
       characters.value = []
       totalPages.value = 1
+      totalCount.value = 0
       noCharactersFound.value = true
       return
     }
@@ -38,13 +62,19 @@ async function fetchCharacters(page, name = '') {
 
     characters.value = data.results
     totalPages.value = data.info.pages
+    totalCount.value = data.info.count
   } catch (error) {
-    console.error('Ошибка загрузки персонажей:', error)
+    if (error.name !== 'AbortError') {
+      console.error('Ошибка загрузки персонажей:', error)
+    }
   } finally {
     loading.value = false
   }
 }
 
+const debouncedFetch = debounce((page, name) => {
+  fetchCharacters(page, name)
+}, 400)
 
 
 function handlePageChange(page) {
@@ -65,7 +95,7 @@ watch(searchQuery, (newQuery) => {
     },
   })
 
-  fetchCharacters(1, newQuery)
+  debouncedFetch(1, newQuery)
 })
 
 watch(currentPage, (newPage) => {
@@ -113,10 +143,16 @@ watch(
   <div class="container">
     <h1>Rick & Morty Characters</h1>
    <SearchBar v-model="searchQuery" />
+   <p v-if="searchQuery && !loading && !noCharactersFound" class="results-count">
+  Total results: {{ totalCount }}
+</p>
 
     <transition name="fade" mode="out-in">
       <div :key="currentPage" class="characters-wrapper">
-        <p v-if="loading">Loading...</p>
+       <div v-if="loading" class="loading-block">
+  <div class="spinner"></div>
+  <p>Loading...</p>
+</div>
 
         <p v-else-if="noCharactersFound" class="empty-state">
   No characters found
@@ -191,6 +227,35 @@ h1 {
   font-size: 20px;
   margin-top: 50px;
   color: #777;
+}
+
+.results-count {
+  text-align: center;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.loading-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 40px;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 4px solid #ddd;
+  border-top: 4px solid #42b883;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 </style>
