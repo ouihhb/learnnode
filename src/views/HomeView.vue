@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PaginationBar from '../components/PaginationBar.vue'
+import SearchBar from '../components/SearchBar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -10,12 +11,29 @@ const characters = ref([])
 const currentPage = ref(Number(route.query.page) || 1)
 const totalPages = ref(1)
 const loading = ref(false)
+const searchQuery = ref('')
+const noCharactersFound = ref(false)
 
-async function fetchCharacters(page) {
+async function fetchCharacters(page, name = '') {
   try {
     loading.value = true
+    noCharactersFound.value = false
 
-    const response = await fetch(`https://rickandmortyapi.com/api/character?page=${page}`)
+    let url = `https://rickandmortyapi.com/api/character?page=${page}`
+
+    if (name.trim()) {
+      url += `&name=${encodeURIComponent(name.trim())}`
+    }
+
+    const response = await fetch(url)
+
+    if (response.status === 404) {
+      characters.value = []
+      totalPages.value = 1
+      noCharactersFound.value = true
+      return
+    }
+
     const data = await response.json()
 
     characters.value = data.results
@@ -27,19 +45,36 @@ async function fetchCharacters(page) {
   }
 }
 
+function handleSearch(query) {
+  searchQuery.value = query
+  currentPage.value = 1
+
+  router.push({
+    query: {
+      page: 1,
+      ...(query ? { name: query } : {}),
+    },
+  })
+
+  fetchCharacters(1, query)
+}
+
 function handlePageChange(page) {
   currentPage.value = page
 }
 
 onMounted(() => {
-  fetchCharacters(currentPage.value)
+  fetchCharacters(currentPage.value, searchQuery.value)
 })
 
 watch(currentPage, (newPage) => {
-  fetchCharacters(newPage)
+  fetchCharacters(newPage, searchQuery.value)
 
   router.push({
-    query: { page: newPage },
+    query: {
+      page: newPage,
+      ...(searchQuery.value ? { name: searchQuery.value } : {}),
+    },
   })
 
   window.scrollTo({
@@ -63,10 +98,19 @@ watch(
 <template>
   <div class="container">
     <h1>Rick & Morty Characters</h1>
+    <SearchBar
+  v-model="searchQuery"
+  :showButton="true"
+  @search="handleSearch"
+/>
 
     <transition name="fade" mode="out-in">
       <div :key="currentPage" class="characters-wrapper">
         <p v-if="loading">Loading...</p>
+
+        <p v-else-if="noCharactersFound" class="empty-state">
+  No characters found
+</p>
 
         <div v-else class="characters-list">
           <div v-for="character in characters" :key="character.id" class="character-card">
@@ -131,4 +175,12 @@ h1 {
 .fade-leave-to {
   opacity: 0;
 }
+
+.empty-state {
+  text-align: center;
+  font-size: 20px;
+  margin-top: 50px;
+  color: #777;
+}
+
 </style>
