@@ -76,7 +76,6 @@ const debouncedFetch = debounce((page, name) => {
   fetchCharacters(page, name)
 }, 400)
 
-
 function handlePageChange(page) {
   currentPage.value = page
 }
@@ -122,9 +121,8 @@ watch(
     if (pageFromUrl !== currentPage.value) {
       currentPage.value = pageFromUrl
     }
-  }
+  },
 )
-
 
 // Questions:
 // 1. How many API requests were made while typing "morty"?
@@ -136,27 +134,24 @@ watch(
 // 3. How does this affect the server and the user experience?
 //    It sends too many unnecessary requests, increases server load,
 //    and can make the UI show outdated or flickering results.
-
 </script>
 
 <template>
   <div class="container">
     <h1>Rick & Morty Characters</h1>
-   <SearchBar v-model="searchQuery" />
-   <p v-if="searchQuery && !loading && !noCharactersFound" class="results-count">
-  Total results: {{ totalCount }}
-</p>
+    <SearchBar v-model="searchQuery" />
+    <p v-if="searchQuery && !loading && !noCharactersFound" class="results-count">
+      Total results: {{ totalCount }}
+    </p>
 
     <transition name="fade" mode="out-in">
       <div :key="currentPage" class="characters-wrapper">
-       <div v-if="loading" class="loading-block">
-  <div class="spinner"></div>
-  <p>Loading...</p>
-</div>
+        <div v-if="loading" class="loading-block">
+          <div class="spinner"></div>
+          <p>Loading...</p>
+        </div>
 
-        <p v-else-if="noCharactersFound" class="empty-state">
-  No characters found
-</p>
+        <p v-else-if="noCharactersFound" class="empty-state">No characters found</p>
 
         <div v-else class="characters-list">
           <div v-for="character in characters" :key="character.id" class="character-card">
@@ -257,6 +252,4 @@ h1 {
     transform: rotate(360deg);
   }
 }
-
 </style>
-// test change
