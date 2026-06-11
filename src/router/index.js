@@ -1,10 +1,10 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import RickAndMorty from '../pages/RickAndMorty.vue'
 import CanvasExample from '../pages/CanvasExample.vue'
 import ResizeObserverDemo from '../pages/ResizeObserverDemo.vue'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(),
   routes: [
     {
       path: '/',
